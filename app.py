@@ -62,7 +62,7 @@ with st.spinner("Loading model..."):
 
 if model_loaded:
     uploaded_file = st.file_uploader(
-        "Upload a potato leaf image", type=["jpg", "jpeg", "png", "bmp"]
+        "Upload a potato leaf image", type=["jpg", "jpeg", "png", "bmp", "webp"]
     )
 
     if uploaded_file is not None:
