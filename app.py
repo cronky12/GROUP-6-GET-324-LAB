@@ -4,14 +4,19 @@ from PIL import Image
 import tensorflow as tf
 from huggingface_hub import hf_hub_download
 
-
-HF_REPO_ID = "Abasiofon001/concrete-crack-classifier"
-MODEL_FILENAME = "potato_blight_best_model.keras"
-IMG_SIZE = (224, 224)                 
-CLASS_NAMES = ["Non-cracked", "Cracked"]  # index 0 -> label 0, index 1 -> label 1
+# ============================================================
+# CONFIG — these MUST match what you used during training.
+# Check the notebook's IMG_SIZE / preprocessing cell before
+# trusting this app's predictions. Mismatch here silently
+# produces wrong predictions with no error thrown.
+# ============================================================
+HF_REPO_ID = "Abasiofon001/Concrete_Crack_Screening"  
+MODEL_FILENAME = "potato_blight_best_model.keras"       
+IMG_SIZE = (224, 224)                                   
+CLASS_NAMES = ["Healthy Potato", "Potato Early Blight"]  # index 0 -> label 0, index 1 -> label 1
 DECISION_THRESHOLD = 0.5
 
-st.set_page_config(page_title="Concrete Crack Classifier", page_icon="🧱", layout="centered")
+st.set_page_config(page_title="Potato Leaf Classifier", page_icon="🥔", layout="centered")
 
 
 @st.cache_resource
@@ -34,11 +39,13 @@ def predict(model, pil_img: Image.Image):
     return CLASS_NAMES[label_idx], prob
 
 
-st.title("🧱 Concrete Bridge Deck Crack Classifier")
+st.title("🥔 Potato Leaf Classifier")
+st.subheader("Healthy vs Early Blight")
 st.caption(
-    "Trained on the SDNET2018 dataset (bridge deck images only). "
-    "Predictions on images that don't resemble that dataset's conditions "
-    "(different lighting, surfaces, camera distance) should be treated with caution."
+    "Trained on the PlantVillage potato subset (lab-condition leaf photos). "
+    "This model only distinguishes Healthy from Early Blight — it was not trained on "
+    "Late Blight or any other crop's disease, and will misclassify anything outside "
+    "those two categories with unwarranted confidence."
 )
 
 with st.spinner("Loading model..."):
@@ -49,14 +56,13 @@ with st.spinner("Loading model..."):
         model_loaded = False
         st.error(f"Failed to load model from {HF_REPO_ID}: {e}")
         st.info(
-            "Common causes: wrong MODEL_FILENAME (check the exact filename in your HF repo's "
-            "Files tab), the repo is private and needs a token, or the repo hasn't finished "
-            "uploading yet."
+            "wrong MODEL_FILENAME (check the exact filename in your HF repo's Files tab), "
+            "the repo is private and needs a token, or the repo hasn't finished uploading yet."
         )
 
 if model_loaded:
     uploaded_file = st.file_uploader(
-        "Upload a concrete surface image", type=["jpg", "jpeg", "png", "bmp"]
+        "Upload a potato leaf image", type=["jpg", "jpeg", "png", "bmp"]
     )
 
     if uploaded_file is not None:
@@ -67,12 +73,12 @@ if model_loaded:
             label, prob = predict(model, pil_img)
 
         st.subheader("Result")
-        if label == "Cracked":
+        if label == "Potato Early Blight":
             st.error(f"**{label}** — predicted probability: {prob:.1%}")
         else:
-            st.success(f"**{label}** — predicted probability of crack: {prob:.1%}")
+            st.success(f"**{label}** — predicted probability of blight: {prob:.1%}")
 
-        confidence = prob if label == "Cracked" else 1 - prob
+        confidence = prob if label == "Potato Early Blight" else 1 - prob
         st.progress(confidence)
         st.caption(f"Model confidence in this prediction: {confidence:.1%}")
 
@@ -83,7 +89,8 @@ if model_loaded:
 
 st.divider()
 st.caption(
-    "⚠️ This model was trained on a specific dataset (SDNET2018 deck images) and hasn't been "
-    "validated on arbitrary real-world photos. Don't treat predictions on out-of-distribution "
-    "images as reliable — this is a portfolio/demo model, not a certified inspection tool."
+    "⚠️ Binary Healthy-vs-Early-Blight only — Late Blight and other diseases were excluded "
+    "from training and will be misclassified. Trained on controlled-background lab photos "
+    "(PlantVillage), not validated on field photos with natural backgrounds, varying lighting, "
+    "or phone-camera blur. This is a portfolio/demo model, not an agricultural diagnostic tool."
 )
